@@ -1,0 +1,109 @@
+(* Lexical part *)
+(* ------------ *)
+
+(* Useful character classes *)
+
+DEC_DIGIT = '0' , '1' , '2' , '3' , '4' , '5' , '6' , '7' , '8' , '9' ;
+
+LATIN_LOWER_CHAR = 'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' , 'j'
+                 , 'k' , 'l' , 'm' , 'n' , 'o' , 'p' , 'q' , 'r' , 's' , 't'
+                 , 'u' , 'v' , 'w' , 'x' , 'y' , 'z' ;
+
+LATIN_UPPER_CHAR = 'A' , 'B' , 'C' , 'D' , 'E' , 'F' , 'G' , 'H' , 'I' , 'J'
+                 , 'K' , 'L' , 'M' , 'N' , 'O' , 'P' , 'Q' , 'R' , 'S' , 'T'
+                 , 'U' , 'V' , 'W' , 'X' , 'Y' , 'Z' ;
+
+LATIN_CHAR = LATIN_LOWER_CHAR | LATIN_UPPER_CHAR ;
+
+WHITESPACE = ? whitespace characters, as in C:
+               * space (0x20)
+               * form feed (0x0c)
+               * line feed (0x0a)
+               * carriage return (0x0d)
+               * horizontal tab (0x09)
+               * vertical tab (0x0b) ?
+             ;
+
+NON_WHITESPACE = ? all except WHITESPACE ? ;
+
+(* Special characters for numerical tokens *)
+
+SIGN = "+" | "-" ;
+SLASH = "/" ;
+DOT = "." ;
+EXP = "e" | "E" ;
+
+(* Special characters for object construction *)
+
+LIST_START = "[" ;
+LIST_END = "]" ;
+DIC_START = "{" ;
+DIC_END = "}" ;
+KEY_VALUE_SEP = ":" , "=" ;
+
+(* Numerical tokens syntax *)
+
+NUMBER = DEC_DIGIT, { [ "'" ], DEC_DIGIT } ;
+FLOAT = [ NUMBER ], DOT, NUMBER
+      | NUMBER, DOT
+      | NUMBER, EXP, [ SIGN ], NUMBER ;
+DECIMAL = [ "+" | "-" ], INTEGER, '/', INTEGER ;
+
+(* Plain (non-quoted) strings syntax *)
+
+NON_QUOTE = ? all except quotes (' and ") ? ;
+PLAIN_STRING = NON_QUOTE, { NON_QUOTE } ;
+
+(* Strings in single or double quotes *)
+
+STRING_SPECIAL_CHAR = '"' | "'" | "\" ;
+STRING_REGULAR_CHAR = ? all except STRING_SPECIAL_CHAR ? ;
+
+Q_STRING_CHAR = STRING_REGULAR_CHAR
+              | '"'
+              | "\'"
+              | "\", "\"
+              | "\", "b"
+              | "\", "f"
+              | "\", "n"
+              | "\", "r"
+              | "\", "t"
+              ; (* TODO: Add \uXXXX like in JSON? *)
+
+QQ_STRING_CHAR = STRING_REGULAR_CHAR
+               | "'"
+               | '\', '\'
+               | '\"'
+               ;
+
+Q_STRING = "'", { Q_STRING_CHAR }, "'" ;
+QQ_STRING = '"', { QQ_STRING_CHAR }, '"' ;
+STRING = PLAIN_STRING | Q_STRING | QQ_STRING ;
+
+(* Syntax part *)
+(* ----------- *)
+
+(* A document may contain a single object, or a list of key-value pairs. The
+   latter case is identical to a single dictionary. *)
+
+document = object | key_value_list ;
+
+object = integer | decimal | float | list | dictionary | structure ;
+
+(* Numerical objects *)
+
+integer = [ SIGN ], NUMBER ;
+decimal = [ SIGN ], NUMBER, SLASH, NUMBER ;
+float = [ SIGN ], FLOAT ;
+
+list = LIST_START
+     , { object, { OBJECT_SEP, object }, [ OBJECT_SEP ] }
+     , LIST_END
+     ;
+
+dict_key_value = object, DICT_KV_SEP, object ;
+key_value_list = { dict_key_value, { OBJECT_SEP, dict_key_value }, [ OBJECT_SEP ] } ;
+dictionary = DIC_START , key_value_list , DIC_END ;
+
+structure = PLAIN_STRING, dictionary ;
+
