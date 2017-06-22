@@ -1,0 +1,8 @@
+/bin/
+/build/
+.vs/
+*.swp
+*.VC.db
+*.VC.opendb
+*.suo
+*.vcxproj.user
