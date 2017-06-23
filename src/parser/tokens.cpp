@@ -7,47 +7,25 @@
 #include <map>
 #include <set>
 
-using namespace token;
-
-namespace {
-
-const std::map<TokenType, std::string> tokenTypeNames {
-    { TokenType::ListStart,   "ListStart   -- [" },
-    { TokenType::ListEnd,     "ListEnd     -- ]" },
-    { TokenType::DictStart,   "DictStart   -- {" },
-    { TokenType::DictEnd,     "DictEnd     -- }" },
-    { TokenType::KeyValueSep, "KeyValueSep -- "  },
-    { TokenType::String,      "String      -- "  },
-    { TokenType::Number,      "Number      -- "  },
-    { TokenType::End,         "End         -- "  },
-};
-
-} // namespace
-
-void Token::write(std::ostream& stream) const
-{
-    stream << tokenTypeNames.at(type);
-}
-
 std::ostream& operator<<(std::ostream& stream, const Token& token)
 {
-    token.write(stream);
+    static const std::map<Token::Type, std::string> typeNames{
+        { Token::Type::ListStart,   "ListStart   -- " },
+        { Token::Type::ListEnd,     "ListEnd     -- " },
+        { Token::Type::DictStart,   "DictStart   -- " },
+        { Token::Type::DictEnd,     "DictEnd     -- " },
+        { Token::Type::KeyValueSep, "KeyValueSep -- " },
+        { Token::Type::String,      "String      -- " },
+        { Token::Type::End,         "End         -- " },
+    };
+
+    auto it = typeNames.find(token._type);
+    if (it == typeNames.end()) {
+        throw std::runtime_error("tokenTypeName: unknown token type");
+    }
+
+    stream << it->second << token._string;
     return stream;
-}
-
-void KeyValueSep::write(std::ostream& stream) const
-{
-    stream << tokenTypeNames.at(type) << symbol;
-}
-
-void String::write(std::ostream& stream) const
-{
-    stream << tokenTypeNames.at(type) << value;
-}
-
-void Number::write(std::ostream& stream) const
-{
-    stream << tokenTypeNames.at(type) << value;
 }
 
 Tokenizer::Tokenizer(std::istream& input)
@@ -106,48 +84,46 @@ std::string Tokenizer::fetchPlainString()
     return stream.str();
 }
 
-std::unique_ptr<Token> Tokenizer::get()
+Token Tokenizer::get()
 {
+    using Type = Token::Type;
+
     skipWhitespace();
     if (_current == eof()) {
-        return std::make_unique<token::End>();
+        return Token(Type::End);
     }
 
-    auto give = [this](std::unique_ptr<Token> token) {
+    auto give = [this](Type type, std::string string = "") {
         next();
-        return token;
+        return Token(type, std::move(string));
     };
+
 
     switch (_current) {
         // Single-character tokens
-        case '[': return give(std::make_unique<token::ListStart>());
-        case ']': return give(std::make_unique<token::ListEnd>());
-        case '{': return give(std::make_unique<token::DictStart>());
-        case '}': return give(std::make_unique<token::DictEnd>());
+        case '[': return give(Type::ListStart);
+        case ']': return give(Type::ListEnd);
+        case '{': return give(Type::DictStart);
+        case '}': return give(Type::DictEnd);
 
         case ':':
         case '=':
-            return give(std::make_unique<token::KeyValueSep>(_current));
+        {
+            std::ostringstream stream;
+            stream << static_cast<char>(_current);
+            return give(Type::KeyValueSep, stream.str());
+        }
 
         // Quoted strings
         case '\'':
         case '"':
         {
             std::string value = fetchStringUntil(_current);
-            return std::make_unique<token::String>(std::move(value));
+            return give(Type::String, std::move(value));
         }
     }
 
     // Non-quoted text. It is either a number, or a plain string.
     std::string plainString = fetchPlainString();
-    try {
-        long double number = std::stold(plainString);
-        return std::make_unique<token::Number>(number);
-    } catch (std::invalid_argument&) {
-        return std::make_unique<token::String>(std::move(plainString));
-    } catch (std::out_of_range&) {
-        std::cerr <<
-            "Numeric value is out of range: " << plainString << std::endl;
-        throw;
-    }
+    return Token(Type::String, std::move(plainString));
 }

@@ -7,76 +7,38 @@
 #include <ostream>
 #include <memory>
 #include <utility>
+#include <typeinfo>
 
-enum class TokenType {
-    ListStart,
-    ListEnd,
-    DictStart,
-    DictEnd,
-    KeyValueSep,
-    String,
-    Number,
-    End,
+class Token {
+public:
+    enum class Type {
+        ListStart,
+        ListEnd,
+        DictStart,
+        DictEnd,
+        KeyValueSep,
+        String,
+        End,
+    };
+
+    Token(Type type, std::string string = "")
+        : _type(type), _string(std::move(string)) {}
+
+    const Type& type() const { return _type; }
+    friend std::ostream& operator<<(std::ostream& stream, const Token& token);
+
+private:
+    Type _type;
+    std::string _string;
 };
-
-struct Token {
-    Token(TokenType type) : type(type) {}
-    virtual void write(std::ostream& stream) const;
-
-    TokenType type;
-};
-
-namespace token {
-
-template <TokenType TT>
-struct TokenOf : Token {
-    TokenOf() : Token(TT) {}
-};
-
-struct ListStart : TokenOf<TokenType::ListStart> {};
-struct ListEnd : TokenOf<TokenType::ListEnd> {};
-struct DictStart : TokenOf<TokenType::DictStart> {};
-struct DictEnd : TokenOf<TokenType::DictEnd> {};
-
-struct KeyValueSep : TokenOf<TokenType::KeyValueSep> {
-    explicit KeyValueSep(char symbol) : symbol(symbol) {}
-    void write(std::ostream& stream) const override;
-
-    char symbol;
-};
-
-struct String : TokenOf<TokenType::String> {
-    explicit String(std::string&& string) : value(std::move(string)) {}
-    void write(std::ostream& stream) const override;
-
-    std::string value;
-};
-
-struct Number : TokenOf<TokenType::Number> {
-    explicit Number(long double value) : value(value) {}
-    void write(std::ostream& stream) const override;
-
-    long double value;
-};
-
-struct End : TokenOf<TokenType::End> {};
-
-} // namespace token
-
-std::ostream& operator<<(std::ostream& stream, const Token& token);
 
 class Tokenizer {
 public:
     Tokenizer(std::istream& input);
 
-    std::unique_ptr<Token> get();
+    Token get();
 
 private:
-    struct DigitString {
-        std::string string;
-        unsigned long long number;
-    };
-
     static auto eof()
     {
         return std::istream::traits_type::eof();

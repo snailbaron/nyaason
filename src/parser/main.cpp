@@ -20,8 +20,8 @@ int main()
     }
 
     auto tokenizer = std::make_shared<Tokenizer>(input);
-    Parser parser(tokenizer);
-
-
-
+    for (Token token = tokenizer->get();
+            token.type() != Token::Type::End; token = tokenizer->get()) {
+        std::cout << token << std::endl;
+    }
 }
