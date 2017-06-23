@@ -1,5 +1,6 @@
 #include "comment_remover.hpp"
 #include "tokens.hpp"
+#include "parser.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -17,11 +18,10 @@ int main()
         std::cerr << "Cannot open input file" << std::endl;
         return 1;
     }
-    
-    Tokenizer tokenizer(input);
-    for (auto token = tokenizer.get();
-            token->type != TokenType::End; token = tokenizer.get()) {
-        std::cout << *token << std::endl;
-    }
+
+    auto tokenizer = std::make_shared<Tokenizer>(input);
+    Parser parser(tokenizer);
+
+
 
 }
