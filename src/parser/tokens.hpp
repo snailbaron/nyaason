@@ -9,8 +9,7 @@
 #include <utility>
 #include <typeinfo>
 
-class Token {
-public:
+struct Token {
     enum class Type {
         ListStart,
         ListEnd,
@@ -21,16 +20,17 @@ public:
         End,
     };
 
-    Token(Type type, std::string string = "")
-        : _type(type), _string(std::move(string)) {}
+    explicit Token(Type type)
+        : type(type) {}
 
-    const Type& type() const { return _type; }
-    friend std::ostream& operator<<(std::ostream& stream, const Token& token);
+    Token(Type type, std::string string)
+        : type(type), string(std::move(string)) {}
 
-private:
-    Type _type;
-    std::string _string;
+    Type type;
+    std::string string;
 };
+
+std::ostream& operator<<(std::ostream& stream, const Token& token);
 
 class Tokenizer {
 public:

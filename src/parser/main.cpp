@@ -1,27 +1,18 @@
-#include "comment_remover.hpp"
-#include "tokens.hpp"
-#include "parser.hpp"
-
+#include <string>
+#include <vector>
 #include <iostream>
 #include <fstream>
-#include <memory>
-#include <cctype>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <regex>
+
+#include "tokens.hpp"
 
 int main()
 {
-    std::ifstream input("test.nyaa");
-    if (!input.is_open()) {
-        std::cerr << "Cannot open input file" << std::endl;
-        return 1;
-    }
+    std::ifstream ifs("test.nyaa");
+    Tokenizer tokenizer(ifs);
 
-    auto tokenizer = std::make_shared<Tokenizer>(input);
-    for (Token token = tokenizer->get();
-            token.type() != Token::Type::End; token = tokenizer->get()) {
+    for (Token token = tokenizer.get(); token.type != Token::Type::End;
+            token = tokenizer.get()) {
         std::cout << token << std::endl;
     }
+
 }

@@ -5,27 +5,35 @@
 
 #include <memory>
 #include <type_traits>
+#include <utility>
+
+namespace nyaa {
 
 class Parser {
 public:
     Parser(std::shared_ptr<Tokenizer> tokenizer)
-        : _tokens(tokenizer) {}
+        : _tokens(tokenizer)
+        , _current(_tokens->get())
+    { }
 
-    nyaa::Nyaason parse();
+    Nyaa parseDocument();
 
 private:
-    nyaa::Nyaason parseDictionary();
-    nyaa::Nyaason parseStructure();
-    nyaa::Nyaason parseList();
-    nyaa::Nyaason parseNumber();
+    void next();
+    void request(Token::Type type);
 
-    template <class Tok>
-    Tok* tokenCast(const std::unique_ptr<Token>& token)
-    {
-        static_assert(std::is_base_of<Token, Tok>(),
-            "tokenCast: Token is not a base of requested type");
+    std::string readString();
+    std::pair<std::string, Nyaa> readKeyValue();
 
-    }
+    String parseString();
+    List parseList();
+    Dictionary parseDictionary();
+    Dictionary parseFreeDictionary();
+    Structure parseStructure();
+    Nyaa parseObject();
 
     std::shared_ptr<Tokenizer> _tokens;
+    Token _current;
 };
+
+} // namespace nyaa

@@ -4,85 +4,26 @@
 
 namespace nyaa {
 
-Nyaason::Nyaason()
-    : _object(std::make_unique<Empty>())
+Nyaa::Nyaa()
+    : _typeInfo(nullptr)
+    , _ptr(nullptr)
 { }
 
-Nyaason::Nyaason(Object* ptr)
-    : _object(ptr)
+Nyaa::Nyaa(const std::type_info& type, Object* ptr)
+    : _typeInfo(&type)
+    , _ptr(ptr)
 { }
 
-Nyaason::Nyaason(const Nyaason& other)
-    : _object(std::make_unique<Object>(*other._object))
+Nyaa::Nyaa(Nyaa&& other)
+    : _typeInfo(other._typeInfo)
+    , _ptr(std::move(other._ptr))
 { }
 
-Nyaason::Nyaason(Nyaason&& other) noexcept
-    : _object(std::move(other._object))
-{ }
-
-Nyaason& Nyaason::operator=(const Nyaason& other)
+Nyaa& Nyaa::operator=(Nyaa&& other) noexcept
 {
-    _object = std::make_unique<Object>(*other._object);
+    std::swap(_typeInfo, other._typeInfo);
+    std::swap(_ptr, other._ptr);
     return *this;
 }
-
-Nyaason& Nyaason::operator=(Nyaason&& other) noexcept
-{
-    _object = std::move(other._object);
-    return *this;
-}
-
-Nyaason& Dictionary::operator[](const std::string& key)
-{
-    return _dictionary[key];
-}
-
-Nyaason& Dictionary::operator[](std::string&& key)
-{
-    return _dictionary[std::move(key)];
-}
-
-Nyaason& Dictionary::at(const std::string& key)
-{
-    return _dictionary.at(key);
-}
-
-const Nyaason& Dictionary::at(const std::string& key) const
-{
-    return _dictionary.at(key);
-}
-
-const std::string& Structure::name() const
-{
-    return _name;
-}
-
-Nyaason& Structure::operator[](const std::string& key)
-{
-    return _dictionary[key];
-}
-
-Nyaason& Structure::operator[](std::string&& key)
-{
-    return _dictionary[std::move(key)];
-}
-
-Nyaason& Structure::at(const std::string& key)
-{
-    return _dictionary.at(key);
-}
-
-const Nyaason& Structure::at(const std::string& key) const
-{
-    return _dictionary.at(key);
-}
-
-String::String(const std::string& string)
-    : _string(string)
-{ }
-
-String::String(std::string&& string)
-    : _string(std::move(string))
-{ }
 
 } // namespace nyaa

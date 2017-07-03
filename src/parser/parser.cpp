@@ -2,73 +2,157 @@
 #include <stdexcept>
 #include <sstream>
 
+namespace nyaa {
+
 namespace {
 
-void reportUnexpectedToken(const std::unique_ptr<Token>& token)
+void reportUnexpectedToken(const Token& token)
 {
     std::ostringstream error;
-    error << "Unexpected token: " << *token;
+    error << "Unexpected token: " << token;
     throw std::runtime_error(error.str());
+}
+
+template <class T>
+Nyaa makeNyaa(T&& object)
+{
+    return Nyaa(
+        typeid(T),
+        static_cast<Object*>(new T(std::forward<T>(object))));
 }
 
 } // namespace
 
-nyaa::Nyaason Parser::parse()
+void Parser::next()
 {
-    //auto token = _tokens->get();
-    //switch (token->type) {
-    //    case TokenType::DictStart: return parseDictionary();
-    //    case TokenType::KeyValueSep: return parseStructure();
-    //    case TokenType::ListStart: return parseList();
-    //    case TokenType::Number: return parseNumber();
-    //    case TokenType::String:
-    //    {
-    //        // TODO: do something about casts
-    //        token::String* string = static_cast<token::String*>(token.get());
-
-    //        auto secondToken = _tokens->get();
-    //        if (secondToken->type == TokenType::End) {
-    //            return nyaa::Nyaason(new nyaa::String(string->value));
-    //        } else if (secondToken->type == TokenType::KeyValueSep) {
-    //            // TODO: read key-value pair list, considering it a dictionary
-    //        } else {
-    //            reportUnexpectedToken(secondToken);
-    //        }
-    //    }
-    //    case TokenType::End: return nyaa::Nyaason();
-    //};
-
-    //reportUnexpectedToken(token);
-    // TODO
-    return nyaa::Nyaason();
-
+    _current = _tokens->get();
 }
 
-nyaa::Nyaason Parser::parseDictionary()
+void Parser::request(Token::Type type)
 {
-    //auto dictionary = std::make_unique<nyaa::Dictionary>();
-    //for (auto token = _tokens->get();
-    //        token->type != TokenType::DictEnd; token = _tokens->get()) {
-
-    //}
-    // TODO
-    return nyaa::Nyaason();
+    if (_current.type != type) {
+        reportUnexpectedToken(_current);
+    }
+    next();
 }
 
-nyaa::Nyaason Parser::parseStructure()
+std::string Parser::readString()
 {
-    // TODO
-    return nyaa::Nyaason();
+    if (_current.type != Token::Type::String) {
+        reportUnexpectedToken(_current);
+    }
+    std::string value = _current.string;
+    next();
+
+    return value;
 }
 
-nyaa::Nyaason Parser::parseList()
+std::pair<std::string, Nyaa> Parser::readKeyValue()
 {
-    // TODO
-    return nyaa::Nyaason();
+    std::pair<std::string, Nyaa> keyValue;
+
+    keyValue.first = readString();
+    request(Token::Type::KeyValueSep);
+    keyValue.second = parseObject();
+
+    return std::move(keyValue);
 }
 
-nyaa::Nyaason Parser::parseNumber()
+String Parser::parseString()
 {
-    // TODO
-    return nyaa::Nyaason();
+    String string;
+    string.value = readString();
+    return string;
 }
+
+List Parser::parseList()
+{
+    List list;
+
+    request(Token::Type::ListStart);
+    while (_current.type != Token::Type::ListEnd) {
+        list.value.push_back(parseObject());
+    }
+    request(Token::Type::ListEnd);
+    
+    return list;
+}
+
+Dictionary Parser::parseDictionary()
+{
+    Dictionary dict;
+
+    request(Token::Type::DictStart);
+    while (_current.type != Token::Type::DictEnd) {
+        dict.value.insert(readKeyValue());
+    }
+    request(Token::Type::DictEnd);
+
+    return dict;
+}
+
+Dictionary Parser::parseFreeDictionary()
+{
+    Dictionary dict;
+
+    while (_current.type != Token::Type::End) {
+        dict.value.insert(readKeyValue());
+    }
+
+    return dict;
+}
+
+Structure Parser::parseStructure()
+{
+    Structure structure;
+
+    request(Token::Type::KeyValueSep);
+    structure.name = readString();
+    structure.fields = parseDictionary();
+
+    return structure;
+}
+
+Nyaa Parser::parseObject()
+{
+    switch (_current.type) {
+        case Token::Type::ListStart: return makeNyaa(parseList());
+        case Token::Type::DictStart: return makeNyaa(parseDictionary());
+        case Token::Type::KeyValueSep: return makeNyaa(parseStructure());
+        case Token::Type::String: return makeNyaa(parseString());
+    }
+    reportUnexpectedToken(_current);
+    return Nyaa();
+}
+
+Nyaa Parser::parseDocument()
+{
+    Nyaa document;
+    switch (_current.type) {
+        case Token::Type::ListStart:
+            document = makeNyaa(parseList());
+            break;
+
+        case Token::Type::DictStart:
+            document = makeNyaa(parseDictionary());
+            break;
+
+        case Token::Type::KeyValueSep:
+            document = makeNyaa(parseStructure());
+            break;
+
+        case Token::Type::String:
+            document = makeNyaa(parseFreeDictionary());
+            break;
+
+        case Token::Type::End: break;
+
+        default:
+            throw std::runtime_error("Error at token: " + _current.string);
+    }
+
+    request(Token::Type::End);
+    return document;
+}
+
+} // namespace nyaa

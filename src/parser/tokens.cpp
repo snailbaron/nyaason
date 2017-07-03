@@ -10,21 +10,21 @@
 std::ostream& operator<<(std::ostream& stream, const Token& token)
 {
     static const std::map<Token::Type, std::string> typeNames{
-        { Token::Type::ListStart,   "ListStart   -- " },
-        { Token::Type::ListEnd,     "ListEnd     -- " },
-        { Token::Type::DictStart,   "DictStart   -- " },
-        { Token::Type::DictEnd,     "DictEnd     -- " },
-        { Token::Type::KeyValueSep, "KeyValueSep -- " },
-        { Token::Type::String,      "String      -- " },
-        { Token::Type::End,         "End         -- " },
+        { Token::Type::ListStart,   "ListStart"   },
+        { Token::Type::ListEnd,     "ListEnd"     },
+        { Token::Type::DictStart,   "DictStart"   },
+        { Token::Type::DictEnd,     "DictEnd"     },
+        { Token::Type::KeyValueSep, "KeyValueSep" },
+        { Token::Type::String,      "String"      },
+        { Token::Type::End,         "End"         },
     };
 
-    auto it = typeNames.find(token._type);
-    if (it == typeNames.end()) {
+    auto typeNamePair = typeNames.find(token.type);
+    if (typeNamePair == typeNames.end()) {
         throw std::runtime_error("tokenTypeName: unknown token type");
     }
 
-    stream << it->second << token._string;
+    stream << typeNamePair->second << " -- " << token.string;
     return stream;
 }
 
@@ -86,44 +86,34 @@ std::string Tokenizer::fetchPlainString()
 
 Token Tokenizer::get()
 {
-    using Type = Token::Type;
-
+    // Skip to next meaningful part. 
     skipWhitespace();
     if (_current == eof()) {
-        return Token(Type::End);
+        return Token(Token::Type::End);
     }
 
-    auto give = [this](Type type, std::string string = "") {
-        next();
-        return Token(type, std::move(string));
+    std::map<char, Token::Type> singleCharTokenTypes {
+        { '[', Token::Type::ListStart },
+        { ']', Token::Type::ListEnd },
+        { '{', Token::Type::DictStart },
+        { '}', Token::Type::DictEnd },
+        { ':', Token::Type::KeyValueSep },
+        { '=', Token::Type::KeyValueSep },
     };
+    
+    auto singleCharTokenPair = singleCharTokenTypes.find(_current);
+    if (singleCharTokenPair != singleCharTokenTypes.end()) {
+        char symbol = _current;
+        next();
+        return { singleCharTokenPair->second, std::string(1, symbol) };
+    }
 
-
-    switch (_current) {
-        // Single-character tokens
-        case '[': return give(Type::ListStart);
-        case ']': return give(Type::ListEnd);
-        case '{': return give(Type::DictStart);
-        case '}': return give(Type::DictEnd);
-
-        case ':':
-        case '=':
-        {
-            std::ostringstream stream;
-            stream << static_cast<char>(_current);
-            return give(Type::KeyValueSep, stream.str());
-        }
-
-        // Quoted strings
-        case '\'':
-        case '"':
-        {
-            std::string value = fetchStringUntil(_current);
-            return give(Type::String, std::move(value));
-        }
+    if (_current == '\'' || _current == '"') {
+        std::string value = fetchStringUntil(_current);
+        return { Token::Type::String, std::move(value) };
     }
 
     // Non-quoted text. It is either a number, or a plain string.
     std::string plainString = fetchPlainString();
-    return Token(Type::String, std::move(plainString));
+    return { Token::Type::String, std::move(plainString) };
 }
