@@ -158,7 +158,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="comment_remover.hpp" />
-    <ClInclude Include="named_enum.hpp" />
     <ClInclude Include="objects.hpp" />
     <ClInclude Include="parser.hpp" />
     <ClInclude Include="tokens.hpp" />
