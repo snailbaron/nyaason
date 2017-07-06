@@ -1,18 +1,14 @@
-#include <string>
-#include <vector>
-#include <iostream>
-#include <fstream>
+#include "nyaason.hpp"
 
-#include "tokens.hpp"
+#include <exception>
+#include <iostream>
 
 int main()
 {
-    std::ifstream ifs("test.nyaa");
-    Tokenizer tokenizer(ifs);
-
-    for (Token token = tokenizer.get(); token.type != Token::Type::End;
-            token = tokenizer.get()) {
-        std::cout << token << std::endl;
+    try {
+        auto nyaa = nyaa::parse("test.nyaa");
+    } catch (std::exception& e) {
+        std::cerr << e.what();
+        return 1;
     }
-
 }

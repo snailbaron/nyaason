@@ -8,6 +8,9 @@ public:
 
     int get();
 
+    int line() const { return _line; }
+    int column() const { return _column; }
+
 private:
     static auto eof()
     {
@@ -22,4 +25,6 @@ private:
     int getAtNextLine();
 
     std::istream& _input;
+    int _line;
+    int _column;
 };

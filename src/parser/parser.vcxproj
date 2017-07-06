@@ -152,12 +152,14 @@
   <ItemGroup>
     <ClCompile Include="comment_remover.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="nyaason.cpp" />
     <ClCompile Include="objects.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="tokens.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="comment_remover.hpp" />
+    <ClInclude Include="nyaason.hpp" />
     <ClInclude Include="objects.hpp" />
     <ClInclude Include="parser.hpp" />
     <ClInclude Include="tokens.hpp" />
